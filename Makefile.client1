@@ -1,0 +1,21 @@
+CC = gcc
+CFLAGS = -g -Wall -std=c11
+CFLAG2 = -c -Wall -std=c11
+OBJETS = client1.o SV_mem.o SV_sem.o
+
+all: client1
+
+client1: $(OBJETS)
+    $(CC) $(CFLAGS) $(OBJETS) -o client1
+
+client1.o: client1.c client1.h SV_def.h SV_mem.h SV_sem.h
+    $(CC) $(CFLAG2) client1.c -o client1.o
+
+SV_mem.o: SV_mem.c SV_mem.h SV_def.h
+    $(CC) $(CFLAG2) SV_mem.c -o SV_mem.o
+
+SV_sem.o: SV_sem.c SV_sem.h SV_def.h
+    $(CC) $(CFLAG2) SV_sem.c -o SV_sem.o
+
+clean:
+    @rm -f *~ *.o client1
