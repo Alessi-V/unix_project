@@ -30,7 +30,7 @@ int DestructionMutex(int semid)
   return (semctl(semid, 0, IPC_RMID, 0));
 }
 
-/*********************	Opï¿½ration P
+/*********************	Opération P
  *  ENTREE: semid = identificateur de la famille de semaphores
  *  SORTIE: neant
  *  RETOUR: 0 ou SEMerr
@@ -51,7 +51,7 @@ int P(int semid)
   return 0;
 }
 
-/*********************	Opï¿½ration V
+/*********************	Opération V
  *  ENTREE: semid = identificateur de la famille de semaphores
  *  SORTIE: neant
  *  RETOUR: 0 ou SEMerr
@@ -86,7 +86,7 @@ int Init_Mutex(int semid, int nb)
       semoper.sem_op = nb;
       semoper.sem_flg = 0;
       
-  if (semop(semid, &semoper, 1) < 0)
+      if (semop(semid, &semoper, 1) < 0)
 	{
 	  printf("Erreur Initialisation du Mutex\n");
 	  return SEMerr;

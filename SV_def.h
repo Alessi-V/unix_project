@@ -19,7 +19,6 @@
 #include <sys/shm.h>
 #include <sys/msg.h>
 #include <sys/sem.h>
-#include <stdint.h>
 
 #define FichierCle "SV_def.h"
 #define CHAR_SHM 'S'
@@ -34,19 +33,12 @@
 #define MSGerr          -102
 #define SEMerr         -103
 
+void handler_SIGTERM();
+
 /*-- structure des tampons --*/
 typedef struct {
    int n;       /* indice tableau derniere donnee ecrite */
    int tampon[BUF_SZ];
 }BUF;
 
-typedef int SEMAPHORE;
 
-void handler_SIGUSR1();
-void handler_SIGUSR2();
-void handler_SIGTERM(int i);
-
-SEMAPHORE Creer_Utiliser_sem(key_t key, int nb_sem, short *val_init);
-void Detruire_sem(SEMAPHORE sem);
-void Changer_sem(SEMAPHORE sem, short no_sem, int val);
-key_t create_key(char *filename, char sem_char);
