@@ -35,6 +35,7 @@
 #define CHAR_SHM 'S'
 #define CHAR_MUTEX 'M'
 #define KEY_FILE_CLIENT "client2.h"
+#define BUF_SZ  100	/* Taille des buffers d'entree */
 
 /*******************************************************************************
  ***************************     TYPE DEFS      ********************************
@@ -44,6 +45,7 @@ typedef int SEMAPHORE;
 
 typedef struct {
     int n;
+    int tampon[BUF_SZ];
 } BUF;
 
 /*******************************************************************************

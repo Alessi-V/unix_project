@@ -34,17 +34,27 @@ int main(void)
   /* Client program kickoff, print client PID */
   pid_client1 = getpid();
   printf("#### PID du client 1: %d ####\n", getpid());
+  
+    /* Definition of the handlers for the signals*/
+  signal(SIGUSR1, handler_SIGUSR1);
 
+  pause();
+  
+  signal(SIGUSR2, handler_SIGUSR2);
+  
   /* Create and initialises the Server Semaphore */
   key_1 = create_key(FichierCle, CHAR_MUTEX);
-  server_mutex = Creer_Utiliser_sem(key_1, 1, (short)0);
+  server_mutex = semget(key_1,1,0666);
+  
+  if(server_mutex<0)
+	return 0;
 
   /* Create and initialises the Client Semaphore */
   key_2 = create_key(KEY_FILE_CLIENT, CHAR_MUTEX);
   client_mutex = Creer_Utiliser_sem(key_2, 1, (short)0);
-
-  /* Wait for the release of the server semaphore */
-  P(server_mutex);
+  
+  if(client_mutex<0)
+	return 0;
 
   /* Open and attatch the segment of the shared memmory created by server */
   key_3 = create_key(FichierCle, CHAR_SHM);
@@ -58,13 +68,6 @@ int main(void)
       perror("shmat");
       exit(EXIT_FAILURE);
   }
-
-  /* Release of the server semaphore */
-  V(server_mutex);
-
-  /* Definition of the handlers for the signals*/
-  signal(SIGUSR1, handler_SIGUSR1);
-  signal(SIGUSR2, handler_SIGUSR2);
 
   // struct sigaction sa;
   // sa.sa_handler = handler_SIGUSR1;
@@ -85,13 +88,14 @@ int main(void)
       	break;
 
       // Access shared memory
-      printf("Data in shared memory: %d\n", Tptr->n);
+      printf("Data in shared memory: %d\n", Tptr->tampon[Tptr->n]);
       read_signal_received = 0;
 
       V(client_mutex);
   }
 
   shmdt(Tptr);
+  shmctl(key_3, IPC_RMID, NULL);
   Detruire_sem(client_mutex);
 
   return 0;
@@ -99,20 +103,16 @@ int main(void)
 
 void handler_SIGUSR1(int sig) 
 {
-	printf("I GOT THE USER SIGNAL 1");
-  read_signal_received = 1;
+	//printf("I GOT THE USER SIGNAL 1\n");
+	signal(SIGUSR1, handler_SIGUSR1);
+    read_signal_received = 1;
 }
 
 void handler_SIGUSR2(int sig) 
 {
-	printf("I GOT THE USER SIGNAL 2");
-  death_signal_received = 1;
-
-//  // Keep things tidy and properly terminate resources
-// shmdt(Tptr);
-//  DestructionMutex(client_mutex);
-//
-//  exit(EXIT_SUCCESS);
+	//printf("I GOT THE USER SIGNAL 2\n");
+	signal(SIGUSR2, handler_SIGUSR2);
+	death_signal_received = 1;
 }
 
 /* **************************************** */
@@ -132,7 +132,7 @@ SEMAPHORE Creer_Utiliser_sem(key_t key, int nb_sem, short *val_init)
   }
   else {
     /* on recupère l'identifiant du semaphore */
-    sem = semget(key,1,0);
+    sem = semget(key,1,0666);
   }
   return sem;
 }
@@ -198,7 +198,7 @@ int P(int semid)
   
   if (semop(semid, &semoper, 1) < 0)
     {
-      perror("Erreur P sur le Mutex");
+      //perror("Erreur P sur le Mutex");
       return -1;
     }
   
@@ -219,7 +219,7 @@ int V(int semid)
   
   if (semop(semid, &semoper, 1) < 0)
     {
-      perror("Erreur V sur le Mutex");
+      //perror("Erreur V sur le Mutex");
       return -1;
     }
   
