@@ -81,14 +81,18 @@ int main(void)
       pause(); 
       P(client_mutex);
 
+      if(death_signal_received)
+      	break;
+
       // Access shared memory
       printf("Data in shared memory: %d\n", Tptr->n);
+      read_signal_received = 0;
 
       V(client_mutex);
   }
 
   shmdt(Tptr);
-  DestructionMutex(client_mutex);
+  Detruire_sem(client_mutex);
 
   return 0;
 }
@@ -104,11 +108,11 @@ void handler_SIGUSR2(int sig)
 	printf("I GOT THE USER SIGNAL 2");
   death_signal_received = 1;
 
-  // Keep things tidy and properly terminate resources
-  shmdt(Tptr);
-  DestructionMutex(client_mutex);
-
-  exit(EXIT_SUCCESS);
+//  // Keep things tidy and properly terminate resources
+// shmdt(Tptr);
+//  DestructionMutex(client_mutex);
+//
+//  exit(EXIT_SUCCESS);
 }
 
 /* **************************************** */
