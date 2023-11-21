@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 
 	/*///////////////////////////creation du mutex de la memoire partagee  //////////////////////*/
     key_t key_1= create_key(FichierCle, CHAR_MUTEX);
-	SVshmid = Creer_Utiliser_sem(key_1, 1, 1);
+	SVshmid = Creer_Utiliser_sem(key_1, 1, (short) 1);
 
 	// if ((SVmutex = CreationMutex()) == -1)
 	// {
@@ -82,7 +82,13 @@ int main(int argc, char *argv[])
 
 	/*/////////////////////////// creation de la memoire partagee  //////////////////////*/
 
+	key_t key_2 = ftok(FichierCle, CHAR_SHM);
 	SVshmid = AllocTampon(&Tptr);
+	if(SVshmid < 0)
+	{
+		// Try to get the existing shared memory segment
+		SVshmid= shmget(key_2, sizeof(BUF), 0);
+	}
 	printf("ID memoire partagee : %d\n", SVshmid);
 	P(SVmutex);	 /* On prend la ressource SHM avec le MUTEX */
 	Tptr->n= -1;
