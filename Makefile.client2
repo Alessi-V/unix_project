@@ -1,0 +1,15 @@
+CC = gcc
+CFLAGS = -g -Wall -std=gnu99
+CFLAG2 = -c -Wall -std=gnu99
+OBJETS = client2.o 
+
+all: client2
+
+client2: $(OBJETS)
+	$(CC) $(CFLAGS) $(OBJETS) -o client2
+
+client2.o: client2.c client2.h
+	$(CC) $(CFLAG2) client2.c -o client2.o
+
+clean:
+	@rm -f *~ *.o client2

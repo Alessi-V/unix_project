@@ -3,7 +3,7 @@ CFLAGS = -g -Wall -std=gnu99
 CFLAG2 = -c -Wall -std=gnu99
 OBJETS = SV.o SV_mem.o SV_sem.o
 
-all: SV client1
+all: SV client1 client2
 
 SV: $(OBJETS)
 	$(CC) $(CFLAGS) $(OBJETS) -o SV
@@ -20,5 +20,8 @@ SV_sem.o: SV_sem.c SV_sem.h SV_def.h
 client1:
 	$(MAKE) -f Makefile.client1
 
+client2:
+	$(MAKE) -f Makefile.client2
+
 clean:
-	@rm -f *~ *.o SV client1
+	@rm -f *~ *.o SV client1 client2
