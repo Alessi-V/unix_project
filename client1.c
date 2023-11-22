@@ -83,7 +83,7 @@ int main(void)
   if ((pid_child = fork()))
   {
     /*This is the parent process - MONITOR */
-    printf("Creation du fil lecteur : %d\n", getpid());
+    printf("Pere monitor : %d\n", getpid());
 
     while(1)
     {
@@ -110,7 +110,7 @@ int main(void)
   else
   {
     /*This is the 1st child process - READER */
-    printf("Creation du fil lecteur : %d\n", getpid());
+    printf("Fil lecteur : %d\n", getpid());
 
     while(1)
     {
