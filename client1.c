@@ -27,15 +27,17 @@ int main(void)
   BUF *Tptr;
   
   int shmid;
-  int pid_client1, pid_child;
+  int pid_client, pid_1, pid_2;
   int client_mutex, server_mutex;
   key_t key_1, key_2, key_3;
+
+  char pipe[BUF_SZ];
 
   int read_data = 0;
 
   /* Client program kickoff, print client PID */
-  pid_client1 = getpid();
-  printf("#### PID du client 1: %d ####\n", pid_client1);
+  pid_client = getpid();
+  printf("#### PID du client 1: %d ####\n", pid_client);
   
     /* Definition of the handlers for the signals*/
   signal(SIGUSR1, handler_SIGUSR1);
@@ -48,15 +50,21 @@ int main(void)
   key_1 = create_key(FichierCle, CHAR_MUTEX);
   server_mutex = semget(key_1,1,0666);
   
-  if(server_mutex<0)
-	return 0;
+  if(server_mutex < 0)
+	  return 0;
 
   /* Create and initialises the Client Semaphore */
   key_2 = create_key(KEY_FILE_CLIENT, CHAR_MUTEX);
   client_mutex = Creer_Utiliser_sem(key_2, 1, (short)0);
   
-  if(client_mutex<0)
-	return 0;
+  if(client_mutex < 0)
+	  return 0;
+
+  if (pipe(pfd) == -1)
+  	{
+      perror("Erreur pipe");
+      exit(EXIT_FAILURE);
+	}
 
   /* Open and attatch the segment of the shared memmory created by server */
   key_3 = create_key(FichierCle, CHAR_SHM);
@@ -80,57 +88,90 @@ int main(void)
   printf("Client waiting for SIGUSR1...\n");
 
   
-  if ((pid_child = fork()))
+  if ((pid_1 = fork()))
   {
     /*This is the parent process - MONITOR */
     printf("Pere monitor : %d\n", getpid());
 
-    while(1)
+     if ((pid_2 = fork()))
     {
-      /* Wait for a signal, since the USR2 handler terminates
-       * the process, this will most likely be USR1 */
-      pause(); 
+      /*This is still the parent process - MONITOR */
 
-      if(death_signal_received)
+      while(1)
       {
-        /* Wait for the death of the child*/
-        wait(0);
+        /* Wait for a signal, since the USR2 handler terminates
+        * the process, this will most likely be USR1 */
+        pause(); 
 
-        shmdt(Tptr);
-        shmctl(key_3, IPC_RMID, NULL);
-        Detruire_sem(client_mutex);
+        if(death_signal_received)
+        {
+          /* Wait for the death of the child*/
+          wait(0);
 
-        return 0;
+          shmdt(Tptr);
+          shmctl(key_3, IPC_RMID, NULL);
+          Detruire_sem(client_mutex);
+
+          return 0;
+        }
+
+        V(client_mutex);
+      }
+    }
+    else
+    {
+      /*This is the 1st child process - READER */
+      printf("Fil lecteur : %d\n", getpid());
+
+      while(1)
+      {
+        /* Death of the reader child */
+        if(death_signal_received)
+          //DOUBLE CHECK THE EXIT
+          exit(EXIT_SUCCESS);
+
+        /* Wait for the read signal to be received by parent */
+        P(client_mutex);
+
+        // Access shared memory
+        read_data = Tptr->tampon[Tptr->n];
+
+        // Send data through pipe
+        close(pfd[0]);
+        sprintf(pipe,"%d", read_data);
+        write(pfd[1], &pipe, sizeof(pipe));
+
+        read_signal_received = 1;
       }
 
-      V(client_mutex);
     }
     
   }
   else
   {
-    /*This is the 1st child process - READER */
-    printf("Fil lecteur : %d\n", getpid());
+    /*This is the 2st child process - WRITER */
+    printf("Fil redacteur : %d\n", getpid());
 
     while(1)
-    {
-      /* Death of the reader child */
-      if(death_signal_received)
-	      //DOUBLE CHECK THE EXIT
-        exit(EXIT_SUCCESS);
+      {
+        /* Death of the writer child */
+        if(death_signal_received)
+          //DOUBLE CHECK THE EXIT
+          exit(EXIT_SUCCESS);
 
-      /* Wait for the read signal to be received by parent */
-      P(client_mutex);
-
-      read_data = Tptr->tampon[Tptr->n];
-
-      // Access shared memory
-      printf("Data in shared memory: %d\n", read_data);
-
-      read_signal_received = 0;
-    }
-
+        else if(read_signal_received)
+        {
+          /* Wait for the read signal to be received and print data */
+          close(pfd[1]);
+          read(pfd[0], &pipe, sizeof(pipe));
+          printf("Data in shared memory: %s\n", pipe);
+          read_signal_received = 0;
+        }
+      }   
   }
+
+  kill(pid_1, SIGKILL);
+  kill(pid_2, SIGKILL);
 
   shmdt(Tptr);
   shmctl(key_3, IPC_RMID, NULL);
@@ -143,7 +184,6 @@ void handler_SIGUSR1(int sig)
 {
 	//printf("I GOT THE USER SIGNAL 1\n");
 	signal(SIGUSR1, handler_SIGUSR1);
-  read_signal_received = 1;
 }
 
 void handler_SIGUSR2(int sig) 
