@@ -27,7 +27,7 @@ int main(void)
   BUF *Tptr;
   
   int shmid;
-  int pid_client1;
+  int pid_client1, pid_child;
   int client_mutex, server_mutex;
   key_t key_1, key_2, key_3;
 
@@ -35,7 +35,7 @@ int main(void)
 
   /* Client program kickoff, print client PID */
   pid_client1 = getpid();
-  printf("#### PID du client 1: %d ####\n", getpid());
+  printf("#### PID du client 1: %d ####\n", pid_client1);
   
     /* Definition of the handlers for the signals*/
   signal(SIGUSR1, handler_SIGUSR1);
@@ -90,10 +90,18 @@ int main(void)
       /* Wait for a signal, since the USR2 handler terminates
        * the process, this will most likely be USR1 */
       pause(); 
-      P(client_mutex);
 
       if(death_signal_received)
-      	break;
+      {
+        /* Wait for the death of the child*/
+        wait(0);
+
+        shmdt(Tptr);
+        shmctl(key_3, IPC_RMID, NULL);
+        Detruire_sem(client_mutex);
+
+        return 0;
+      }
 
       V(client_mutex);
     }
@@ -106,17 +114,20 @@ int main(void)
 
     while(1)
     {
+      /* Death of the reader child */
+      if(death_signal_received)
+	      //DOUBLE CHECK THE EXIT
+        exit(EXIT_SUCCESS);
+
       /* Wait for the read signal to be received by parent */
       P(client_mutex);
 
       read_data = Tptr->tampon[Tptr->n];
-      
+
       // Access shared memory
       printf("Data in shared memory: %d\n", read_data);
 
       read_signal_received = 0;
-
-      V(client_mutex);
     }
 
   }
@@ -132,7 +143,7 @@ void handler_SIGUSR1(int sig)
 {
 	//printf("I GOT THE USER SIGNAL 1\n");
 	signal(SIGUSR1, handler_SIGUSR1);
-    read_signal_received = 1;
+  read_signal_received = 1;
 }
 
 void handler_SIGUSR2(int sig) 
