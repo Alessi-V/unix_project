@@ -31,6 +31,8 @@ int main(void)
   int client_mutex, server_mutex;
   key_t key_1, key_2, key_3;
 
+  int read_data = 0;
+
   /* Client program kickoff, print client PID */
   pid_client1 = getpid();
   printf("#### PID du client 1: %d ####\n", getpid());
@@ -77,8 +79,14 @@ int main(void)
 
   printf("Client waiting for SIGUSR1...\n");
 
-  while (1) 
+  
+  if ((pid_child = fork()))
   {
+    /*This is the parent process - MONITOR */
+    printf("Creation du fil lecteur : %d\n", getpid());
+
+    while(1)
+    {
       /* Wait for a signal, since the USR2 handler terminates
        * the process, this will most likely be USR1 */
       pause(); 
@@ -87,11 +95,30 @@ int main(void)
       if(death_signal_received)
       	break;
 
+      V(client_mutex);
+    }
+    
+  }
+  else
+  {
+    /*This is the 1st child process - READER */
+    printf("Creation du fil lecteur : %d\n", getpid());
+
+    while(1)
+    {
+      /* Wait for the read signal to be received by parent */
+      P(client_mutex);
+
+      read_data = Tptr->tampon[Tptr->n];
+      
       // Access shared memory
-      printf("Data in shared memory: %d\n", Tptr->tampon[Tptr->n]);
+      printf("Data in shared memory: %d\n", read_data);
+
       read_signal_received = 0;
 
       V(client_mutex);
+    }
+
   }
 
   shmdt(Tptr);
