@@ -32,8 +32,13 @@ int main(void)
   key_t key_1, key_2, key_3;
 
   char pipe[BUF_SZ];
+  int pfd[2];
 
   int read_data = 0;
+
+  char response[2*BUF_SZ];
+  time_t rawtime;
+  struct tm * timeinfo;
 
   /* Client program kickoff, print client PID */
   pid_client = getpid();
@@ -161,10 +166,16 @@ int main(void)
 
         else if(read_signal_received)
         {
+          time ( &rawtime );
+          timeinfo = localtime ( &rawtime );
+
           /* Wait for the read signal to be received and print data */
           close(pfd[1]);
           read(pfd[0], &pipe, sizeof(pipe));
-          printf("Data in shared memory: %s\n", pipe);
+
+          printf("Data dans la memoire partagee: %s\n", pipe);
+          printf ("Date et temps de reception: %s", asctime (timeinfo));
+          
           read_signal_received = 0;
         }
       }   

@@ -26,6 +26,9 @@
 #include <sys/sem.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
+#include <sys/ipc.h>
+#include <unistd.h>
+#include <time.h>
 
 
 /*******************************************************************************
