@@ -89,14 +89,14 @@ key_t create_key(char *filename, char sem_char);
  *  SORTIE: neant
  *  RETOUR: 0 ou SEMerr
  */
-int P(int semid);
+int P(int semid, int nb_sem);
 
 /*********************	Opération V
  *  ENTREE: semid = identificateur de la famille de semaphores
  *  SORTIE: neant
  *  RETOUR: 0 ou SEMerr
  */
-int V(int semid);
+int V(int semid, int nb_sem);
 
 
 #endif /* CLIENT1_H_ */
