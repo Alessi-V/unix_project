@@ -31,12 +31,11 @@ int main(void)
   int client_mutex, server_mutex;
   key_t key_1, key_2, key_3;
 
-  char pipe[BUF_SZ];
+  char pipe_1[BUF_SZ];
   int pfd[2];
 
   int read_data = 0;
 
-  char response[2*BUF_SZ];
   time_t rawtime;
   struct tm * timeinfo;
 
@@ -60,7 +59,7 @@ int main(void)
 
   /* Create and initialises the Client Semaphore */
   key_2 = create_key(KEY_FILE_CLIENT, CHAR_MUTEX);
-  client_mutex = Creer_Utiliser_sem(key_2, 1, (short)0);
+  client_mutex = Creer_Utiliser_sem(key_2, 2, (short)0);
   
   if(client_mutex < 0)
 	  return 0;
@@ -120,7 +119,7 @@ int main(void)
           return 0;
         }
 
-        V(client_mutex);
+        V(client_mutex,0);
       }
     }
     else
@@ -136,17 +135,18 @@ int main(void)
           exit(EXIT_SUCCESS);
 
         /* Wait for the read signal to be received by parent */
-        P(client_mutex);
+        P(client_mutex, 0);
 
         // Access shared memory
         read_data = Tptr->tampon[Tptr->n];
 
         // Send data through pipe
         close(pfd[0]);
-        sprintf(pipe,"%d", read_data);
-        write(pfd[1], &pipe, sizeof(pipe));
+        sprintf(pipe_1,"%d", read_data);
+        write(pfd[1], &pipe_1, sizeof(pipe_1));
 
-        read_signal_received = 1;
+        V(client_mutex,1);
+
       }
 
     }
@@ -164,20 +164,21 @@ int main(void)
           //DOUBLE CHECK THE EXIT
           exit(EXIT_SUCCESS);
 
-        else if(read_signal_received)
-        {
-          time ( &rawtime );
-          timeinfo = localtime ( &rawtime );
+        /* Wait for the pipe completion by child 2 */
+        P(client_mutex, 1);
+        
+        time ( &rawtime );
+        timeinfo = localtime ( &rawtime );
 
-          /* Wait for the read signal to be received and print data */
-          close(pfd[1]);
-          read(pfd[0], &pipe, sizeof(pipe));
+        /* Wait for the read signal to be received and print data */
+        close(pfd[1]);
+        read(pfd[0], &pipe_1, sizeof(pipe_1));
 
-          printf("Data dans la memoire partagee: %s\n", pipe);
-          printf ("Date et temps de reception: %s", asctime (timeinfo));
-          
-          read_signal_received = 0;
-        }
+        printf("Data dans la memoire partagee: %s\n", pipe_1);
+        printf ("Date et temps de reception: %s", asctime (timeinfo));
+
+        read_signal_received = 0;
+  
       }   
   }
 
@@ -278,10 +279,10 @@ key_t create_key(char *filename, char sem_char)
  *  SORTIE: neant
  *  RETOUR: 0 ou SEMerr
  */
-int P(int semid)
+int P(int semid, int nb_sm)
 {
   struct sembuf semoper;
-  semoper.sem_num = 0;
+  semoper.sem_num = nb_sm;
   semoper.sem_op = -1;
   semoper.sem_flg = 0;
   
@@ -299,10 +300,10 @@ int P(int semid)
  *  SORTIE: neant
  *  RETOUR: 0 ou SEMerr
  */
-int V(int semid)
+int V(int semid, int nb_sm)
 {
   struct sembuf semoper;
-  semoper.sem_num = 0;
+  semoper.sem_num = nb_sm;
   semoper.sem_op = 1;
   semoper.sem_flg = 0;
   
