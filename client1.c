@@ -94,6 +94,7 @@ int main(void)
       if(death_signal_received)
       {
         /* Wait for the death of the child*/
+        kill(pid_child, SIGKILL);
         wait(0);
 
         shmdt(Tptr);
@@ -114,10 +115,6 @@ int main(void)
 
     while(1)
     {
-      /* Death of the reader child */
-      if(death_signal_received)
-	      //DOUBLE CHECK THE EXIT
-        exit(EXIT_SUCCESS);
 
       /* Wait for the read signal to be received by parent */
       P(client_mutex);
@@ -143,7 +140,7 @@ void handler_SIGUSR1(int sig)
 {
 	//printf("I GOT THE USER SIGNAL 1\n");
 	signal(SIGUSR1, handler_SIGUSR1);
-  read_signal_received = 1;
+	read_signal_received = 1;
 }
 
 void handler_SIGUSR2(int sig) 
