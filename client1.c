@@ -19,8 +19,8 @@
 /*******************************************************************************
  ***************************  GLOBAL VARIABLES   *******************************
  ******************************************************************************/
-uint8_t read_signal_received = 0;
 uint8_t death_signal_received = 0;
+uint8_t ctrl_c_signal_received = 0;
 
 int main(void) 
 {
@@ -49,6 +49,7 @@ int main(void)
   pause();
   
   signal(SIGUSR2, handler_SIGUSR2);
+  signal(SIGINT, handler_SIGINT);
   
   /* Create and initialises the Server Semaphore */
   key_1 = create_key(FichierCle, CHAR_MUTEX);
@@ -110,6 +111,9 @@ int main(void)
         if(death_signal_received)
         {
           /* Wait for the death of the child*/
+          kill(pid_1, SIGKILL);
+          kill(pid_2, SIGKILL);
+
           wait(0);
 
           shmdt(Tptr);
@@ -129,13 +133,12 @@ int main(void)
 
       while(1)
       {
-        /* Death of the reader child */
-        if(death_signal_received)
-          //DOUBLE CHECK THE EXIT
-          exit(EXIT_SUCCESS);
 
         /* Wait for the read signal to be received by parent */
         P(client_mutex, 0);
+
+        if(ctrl_c_signal_received)
+          return 0 ;
 
         // Access shared memory
         read_data = Tptr->tampon[Tptr->n];
@@ -159,13 +162,11 @@ int main(void)
 
     while(1)
       {
-        /* Death of the writer child */
-        if(death_signal_received)
-          //DOUBLE CHECK THE EXIT
-          exit(EXIT_SUCCESS);
-
         /* Wait for the pipe completion by child 2 */
         P(client_mutex, 1);
+
+        if(ctrl_c_signal_received)
+          return 0 ;
         
         time ( &rawtime );
         timeinfo = localtime ( &rawtime );
@@ -174,16 +175,10 @@ int main(void)
         close(pfd[1]);
         read(pfd[0], &pipe_1, sizeof(pipe_1));
 
-        printf("Data dans la memoire partagee: %s\n", pipe_1);
-        printf ("Date et temps de reception: %s", asctime (timeinfo));
-
-        read_signal_received = 0;
-  
+        printf("Data dans la memoire partagee: %s\t", pipe_1);
+        printf ("Date et Temps: %s\n", asctime (timeinfo));
       }   
   }
-
-  kill(pid_1, SIGKILL);
-  kill(pid_2, SIGKILL);
 
   shmdt(Tptr);
   shmctl(key_3, IPC_RMID, NULL);
@@ -203,6 +198,13 @@ void handler_SIGUSR2(int sig)
 	//printf("I GOT THE USER SIGNAL 2\n");
 	signal(SIGUSR2, handler_SIGUSR2);
 	death_signal_received = 1;
+}
+
+void handler_SIGINT(int sig) 
+{
+	printf("I GOT THE CTRL+C SIGNAL\n");
+	signal(SIGINT, handler_SIGINT);
+	ctrl_c_signal_received = 1;
 }
 
 /* **************************************** */
@@ -315,4 +317,3 @@ int V(int semid, int nb_sm)
   
   return 0;
 }
-

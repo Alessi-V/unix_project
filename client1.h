@@ -58,6 +58,7 @@ typedef struct {
 
 void handler_SIGUSR1(int sig);
 void handler_SIGUSR2(int sig);
+void handler_SIGINT(int sig);
 
 /* **************************************** */
 /* Creation d'un ensemble de semaphores     */
